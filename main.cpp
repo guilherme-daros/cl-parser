@@ -5,6 +5,8 @@
 #include <string>
 #include <unordered_map>
 
+namespace cl_parser {
+
 struct my_settings {
     bool help{false};
     bool verbose{false};
@@ -24,7 +26,6 @@ const std::unordered_map<std::string, flag_handler> flags{
     {"--verbose", [](my_settings &s) { s.verbose = true; }},
     {"-v", [](my_settings &s) { s.verbose = true; }},
 
-    {"--quiet", [](my_settings &s) { s.verbose = false; }},
 };
 
 const std::unordered_map<std::string, arg_handler> arguments{
@@ -35,9 +36,11 @@ const std::unordered_map<std::string, arg_handler> arguments{
     {"--value", [](my_settings &s, const std::string &val) { s.value = std::stoi(val); }},
 };
 
-void print_settings(my_settings &s) {
+std::function print_settings = [](my_settings &s) {
+    std::cout << "[Flags]\n";
     std::cout << "help: " << s.help << "\n";
     std::cout << "verbose: " << s.verbose << "\n";
+    std::cout << "[Arguments]\n";
     std::cout << "infile: " << s.infile.value_or("empty") << "\n";
     std::cout << "outfile: " << s.outfile.value_or("empty") << "\n";
     std::cout << "value: " << s.value.value_or(NULL) << "\n";
@@ -47,28 +50,34 @@ my_settings parse_settings(int argc, char const *argv[]) {
     my_settings settings;
 
     for (int i{1}; i < argc; i++) {
-        // gets the option to process
         std::string opt{argv[i]};
 
         if (auto j{flags.find(opt)}; j != flags.end())
             j->second(settings);
 
         else if (auto k{arguments.find(opt)}; k != arguments.end()) {
-            if (i++ < argc)
+            if (++i < argc)
                 k->second(settings, {argv[i]});
-            else
-                throw std::runtime_error{"missing param after" + opt};
+            else {
+                std::cerr << "[cl-parser] missing param after " + opt << std::endl;
+                exit(0);
+            }
 
         } else if (!settings.infile)
             settings.infile = argv[i];
-        else
-            std::cerr << "unrecognized command line option " << opt << std::endl;
+        else {
+            std::cerr << "[cl-parser] unrecognized command line option " + opt << std::endl;
+            exit(0);
+        }
     };
 
     return settings;
 }
 
+}  // namespace cl_parser
+
 int main(int argc, char const *argv[]) {
-    my_settings settings = parse_settings(argc, argv);
-    print_settings(settings);
+    cl_parser::my_settings settings = cl_parser::parse_settings(argc, argv);
+
+    cl_parser::print_settings(settings);
 }
