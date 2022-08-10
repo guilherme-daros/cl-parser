@@ -15,8 +15,8 @@ struct my_settings {
     std::optional<int> value;
 };
 
-typedef std::function<void(my_settings &)> flag_handler;
-typedef std::function<void(my_settings &, const std::string &)> arg_handler;
+using  flag_handler = std::function<void(my_settings &)>;
+using  arg_handler = std::function<void(my_settings &, const std::string &)>;
 
 const std::unordered_map<std::string, flag_handler> flags{
 
